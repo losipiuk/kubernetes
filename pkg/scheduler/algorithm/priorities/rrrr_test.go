@@ -67,6 +67,34 @@ func TestBrokenLinearFunction(t *testing.T) {
 				{p: 500.0, expected: 3000.0},
 			},
 		},
+		{
+			x: []float64{0.0, 40.0, 100.0},
+			y: []float64{2.0, 10.0, 0.0},
+			assertions: []Assertion{
+				{p: -10.0, expected: 2.0},
+				{p: 0.0, expected: 2.0},
+				{p: 20.0, expected: 6.0},
+				{p: 30.0, expected: 8.0},
+				{p: 40.0, expected: 10.0},
+				{p: 70.0, expected: 5.0},
+				{p: 100.0, expected: 0.0},
+				{p: 110.0, expected: 0.0},
+			},
+		},
+		{
+			x: []float64{0.0, 40.0, 100.0},
+			y: []float64{2.0, 2.0, 2.0},
+			assertions: []Assertion{
+				{p: -10.0, expected: 2.0},
+				{p: 0.0, expected: 2.0},
+				{p: 20.0, expected: 2.0},
+				{p: 30.0, expected: 2.0},
+				{p: 40.0, expected: 2.0},
+				{p: 70.0, expected: 2.0},
+				{p: 100.0, expected: 2.0},
+				{p: 110.0, expected: 2.0},
+			},
+		},
 	}
 
 	for _, test := range tests {

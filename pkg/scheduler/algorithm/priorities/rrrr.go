@@ -54,7 +54,7 @@ func brokenLinearFunction(x []float64, y [] float64) func(float64) float64 {
 				if i == 0 {
 					return yy[0]
 				} else {
-					return yy[i-1] + (yy[i]-yy[i-1])*(xx[i]-xx[i-1])/(p-xx[i-1])
+					return yy[i-1] + (yy[i]-yy[i-1])*(p-xx[i-1])/(xx[i]-xx[i-1])
 				}
 			}
 		}
