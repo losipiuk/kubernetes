@@ -21,6 +21,9 @@ import (
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 	"errors"
+	"github.com/golang/glog"
+	"strings"
+	"strconv"
 )
 
 type functionShape struct {
@@ -73,6 +76,34 @@ func RequestedToCapacityRatioResourceAllocationPriorityDefault() *ResourceAlloca
 // ResourceAllocationPriority using provided resource scoring function shape.
 func RequestedToCapacityRatioResourceAllocationPriority(scoringFunctionShape functionShape) *ResourceAllocationPriority {
 	return &ResourceAllocationPriority{"RequestedToCapacityRatioResourceAllocationPriority", buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape)}
+}
+
+func ParseRequestedToCapacityRatioScoringFunctionShape(shapeDesc string) functionShape {
+	pointDescs := strings.Split(shapeDesc, ",")
+	n := len(pointDescs)
+	x := make([]float64, 0, n)
+	y := make([]float64, 0, n)
+
+	for _, pointDesc := range pointDescs {
+		xy := strings.Split(pointDesc, "=")
+		if len(xy) != 2 {
+			panic(fmt.Sprintf("Cannot parse function shape '%s'", shapeDesc))
+		}
+		px, errx := strconv.ParseFloat(xy[0], 64)
+		py, erry := strconv.ParseFloat(xy[1], 64)
+		if errx != nil || erry != nil {
+			panic(fmt.Sprintf("Cannot parse function shape '%s'", shapeDesc))
+		}
+		x = append(x, px)
+		y = append(y, py)
+	}
+
+	shape, err := newFunctionShapeErr(x, y)
+	if err != nil {
+		panic(fmt.Sprintf("Cannot parse function shape '%s'; err='%s'", shapeDesc, err.Error()))
+	}
+	glog.Info("parsed shape: %v", shape)
+	return shape
 }
 
 func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape functionShape) func(*schedulercache.Resource, *schedulercache.Resource, bool, int, int) int64 {

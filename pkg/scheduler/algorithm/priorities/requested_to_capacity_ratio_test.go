@@ -26,6 +26,7 @@ import (
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 	"sort"
+	"k8s.io/kubernetes/bazel-kubernetes/external/go_sdk/src/fmt"
 )
 
 func TestCreatingFunctionShapePanicsIfLengthOfXDoesNotMatchLengthOfY(t *testing.T) {
@@ -224,6 +225,74 @@ func TestRequestedToCapacityRatio(t *testing.T) {
 		}
 		if !reflect.DeepEqual(test.expectedPriorities, list) {
 			t.Errorf("%s: expected %#v, got %#v", test.test, test.expectedPriorities, list)
+		}
+	}
+}
+
+func TestParseRequestedToCapacityRatioScoringFunctionShape(t *testing.T) {
+	type test struct {
+		shapeDesc     string
+		expectedPanic bool
+		expectedErr   string
+		expectedX     []float64
+		expectedY     []float64
+	}
+	tests := []test{
+		{
+			shapeDesc:     "0.0=0.1",
+			expectedPanic: false,
+			expectedX:     []float64{0.0},
+			expectedY:     []float64{0.1},
+		},
+		{
+			shapeDesc:     "0.0=0.1,0.3=0.4",
+			expectedPanic: false,
+			expectedX:     []float64{0.0, 0.3},
+			expectedY:     []float64{0.1, 0.4},
+		},
+		{
+			shapeDesc:     "0=0.1,0.3=0.4",
+			expectedPanic: false,
+			expectedX:     []float64{0.0, 0.3},
+			expectedY:     []float64{0.1, 0.4},
+		},
+		{
+			shapeDesc:     "",
+			expectedPanic: true,
+		},
+		{
+			shapeDesc:     "0.0=0.1,0.3=x",
+			expectedPanic: true,
+		},
+		{
+			shapeDesc:     "0.3=0.4,0.0=0.1",
+			expectedErr:   "Values in x must be increasing. x[0]==0.300000 >= x[1]==0.000000",
+			expectedPanic: true,
+		},
+		{
+			shapeDesc:     "blah",
+			expectedPanic: true,
+		},
+		{
+			shapeDesc:     "0.0",
+			expectedPanic: true,
+		},
+	}
+
+	for _, test := range tests {
+		if test.expectedPanic {
+			expectedPanicMessage := fmt.Sprintf("Cannot parse function shape '%s'", test.shapeDesc)
+			if len(test.expectedErr) != 0 {
+				expectedPanicMessage = expectedPanicMessage + fmt.Sprintf("; err='%s'", test.expectedErr)
+			}
+			assert.PanicsWithValue(
+				t,
+				expectedPanicMessage,
+				func() { ParseRequestedToCapacityRatioScoringFunctionShape(test.shapeDesc) })
+		} else {
+			expectedShape := newFunctionShape(test.expectedX, test.expectedY)
+			parsedShape := ParseRequestedToCapacityRatioScoringFunctionShape(test.shapeDesc)
+			assert.Equal(t, expectedShape, parsedShape)
 		}
 	}
 }
