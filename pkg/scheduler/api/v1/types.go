@@ -91,6 +91,8 @@ type PriorityArgument struct {
 	// The priority function that checks whether a particular node has a certain label
 	// defined or not, regardless of value
 	LabelPreference *LabelPreference `json:"labelPreference"`
+	// The RequestedToCapacityRatio priority function is parametrized with function shape.
+	RequestedToCapacityRatioArguments *RequestedToCapacityRatioArguments `json:"requestedToCapacityRatioArguments"`
 }
 
 // ServiceAffinity holds the parameters that are used to configure the corresponding predicate in scheduler policy configuration.
@@ -123,6 +125,11 @@ type LabelPreference struct {
 	// If true, higher priority is given to nodes that have the label
 	// If false, higher priority is given to nodes that do not have the label
 	Presence bool `json:"presence"`
+}
+
+// RequestedToCapacityRatioArguments holds arguments specific to RequestedToCapacityRatio priority function
+type RequestedToCapacityRatioArguments struct {
+	Shape string `json:"shape"`
 }
 
 // ExtenderManagedResource describes the arguments of extended resources
