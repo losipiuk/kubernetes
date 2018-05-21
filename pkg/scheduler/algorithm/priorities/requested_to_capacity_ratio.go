@@ -20,6 +20,7 @@ import (
 	"fmt"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
+	"errors"
 )
 
 type functionShape struct {
@@ -34,22 +35,30 @@ var (
 )
 
 func newFunctionShape(x []float64, y []float64) functionShape {
+	shape, err := newFunctionShapeErr(x, y)
+	if err != nil {
+		panic(err.Error())
+	}
+	return shape
+}
+
+func newFunctionShapeErr(x []float64, y []float64) (functionShape, error) {
 	if len(x) != len(y) {
-		panic(fmt.Sprintf("Length of x(%d) does not match length of y(%d)", len(x), len(y)))
+		return functionShape{}, errors.New(fmt.Sprintf("Length of x(%d) does not match length of y(%d)", len(x), len(y)))
 	}
 
 	n := len(x)
 
 	for i := 1; i < n; i++ {
 		if x[i-1] >= x[i] {
-			panic(fmt.Sprintf("Values in x must be increasing. x[%d]==%f >= x[%d]==%f", i-1, x[i-1], i, x[i]))
+			return functionShape{}, errors.New(fmt.Sprintf("Values in x must be increasing. x[%d]==%f >= x[%d]==%f", i-1, x[i-1], i, x[i]))
 		}
 	}
 	return functionShape{
 		x: x,
 		y: y,
 		n: n,
-	}
+	}, nil
 }
 
 // RequestedToCapacityRatioResourceAllocationPriorityDefault creates a requestedToCapacity based
