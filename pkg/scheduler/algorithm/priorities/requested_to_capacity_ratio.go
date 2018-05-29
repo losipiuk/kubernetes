@@ -19,6 +19,7 @@ package priorities
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 )
@@ -28,7 +29,6 @@ import (
 type FunctionShape struct {
 	x []float64
 	y []float64
-	n int
 }
 
 var (
@@ -51,7 +51,6 @@ func newFunctionShape(x []float64, y []float64) (FunctionShape, error) {
 	return FunctionShape{
 		x: x,
 		y: y,
-		n: n,
 	}, nil
 }
 
@@ -90,7 +89,7 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 // Creates a function which is built using linear segments
 // shape.x slice represents points on x axis where different segments meet
 // shape.y represents function values at meeting points
-// both shape.x and shape.y have length of shape.n
+// both shape.x and shape.y have same length (n)
 //
 // function f(p) is defined as:
 //   y[0] for p < x[0]
@@ -98,10 +97,13 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 //   y[n-1] for p > x[n-1]
 // and linear between points (p < x[i])
 func buildBrokenLinearFunction(shape FunctionShape) func(float64) float64 {
-	n := shape.n
-	x := make([]float64, shape.n)
+	if len(shape.x) != len(shape.y) {
+		glog.Fatalf("invalid argument; len(shape.x)==%d, len(shape.y)==%d", shape.x, shape.y)
+	}
+	n := len(shape.x)
+	x := make([]float64, n)
 	copy(x, shape.x)
-	y := make([]float64, shape.n)
+	y := make([]float64, n)
 	copy(y, shape.y)
 
 	return func(p float64) float64 {
