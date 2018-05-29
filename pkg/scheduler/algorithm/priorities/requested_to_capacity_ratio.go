@@ -119,7 +119,7 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 //   y[i] for p == x[i]
 //   y[n-1] for p > x[n-1]
 // and linear between points (p < x[i])
-func buildBrokenLinearFunction(shape FunctionShape) func(int64) int64{
+func buildBrokenLinearFunction(shape FunctionShape) func(int64) int64 {
 	if len(shape.x) != len(shape.y) {
 		glog.Fatalf("invalid argument; len(shape.x)==%d, len(shape.y)==%d", shape.x, shape.y)
 	}
