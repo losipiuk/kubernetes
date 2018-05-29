@@ -25,7 +25,7 @@ import (
 )
 
 // FunctionShape represents shape of scoring function.
-// For safety use newFunctionShape which performs precondition checks for struct creation.
+// For safety use NewFunctionShape which performs precondition checks for struct creation.
 type FunctionShape struct {
 	x []int64
 	y []int64
@@ -33,7 +33,7 @@ type FunctionShape struct {
 
 var (
 	// give priority to least utilized nodes by default
-	defaultFunctionShape, _ = newFunctionShape([]int64{0, 100}, []int64{10, 0})
+	defaultFunctionShape, _ = NewFunctionShape([]int64{0, 100}, []int64{10, 0})
 )
 
 const (
@@ -43,7 +43,9 @@ const (
 	maxY = schedulerapi.MaxPriority
 )
 
-func newFunctionShape(x []int64, y []int64) (FunctionShape, error) {
+// NewFunctionShape creates instance of FunctionShape in a safe way performing all
+// necessary sanity checks.
+func NewFunctionShape(x []int64, y []int64) (FunctionShape, error) {
 	if len(x) != len(y) {
 		return FunctionShape{}, fmt.Errorf("length of x(%d) does not match length of y(%d)", len(x), len(y))
 	}

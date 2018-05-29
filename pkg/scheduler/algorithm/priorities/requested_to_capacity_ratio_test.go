@@ -30,31 +30,31 @@ import (
 
 func TestCreatingFunctionShapePanicsIfLengthOfXDoesNotMatchLengthOfY(t *testing.T) {
 	var err error
-	_, err = newFunctionShape([]int64{1, 2}, []int64{1, 2, 3})
+	_, err = NewFunctionShape([]int64{1, 2}, []int64{1, 2, 3})
 	assert.Equal(t, "length of x(2) does not match length of y(3)", err.Error())
 }
 
 func TestCreatingFunctionShapeErrorsIfXIsNotSorted(t *testing.T) {
 	var err error
-	_, err = newFunctionShape([]int64{10, 15, 20, 19, 25}, []int64{1, 2, 3, 4, 5})
+	_, err = NewFunctionShape([]int64{10, 15, 20, 19, 25}, []int64{1, 2, 3, 4, 5})
 	assert.Equal(t, "values in x must be sorted. x[2]==20 >= x[3]==19", err.Error())
 
-	_, err = newFunctionShape([]int64{10, 20, 20, 22, 25}, []int64{1, 2, 3, 4, 5})
+	_, err = NewFunctionShape([]int64{10, 20, 20, 22, 25}, []int64{1, 2, 3, 4, 5})
 	assert.Equal(t, "values in x must be sorted. x[1]==20 >= x[2]==20", err.Error())
 }
 
 func TestCreatingFunctionPointNotInAllowedRange(t *testing.T) {
 	var err error
-	_, err = newFunctionShape([]int64{-1, 100}, []int64{0, 10})
+	_, err = NewFunctionShape([]int64{-1, 100}, []int64{0, 10})
 	assert.Equal(t, "values in x must not be less than 0. x[0]==-1", err.Error())
 
-	_, err = newFunctionShape([]int64{0, 101}, []int64{0, 10})
+	_, err = NewFunctionShape([]int64{0, 101}, []int64{0, 10})
 	assert.Equal(t, "values in x must not be greater than 100. x[1]==101", err.Error())
 
-	_, err = newFunctionShape([]int64{0, 100}, []int64{-1, 10})
+	_, err = NewFunctionShape([]int64{0, 100}, []int64{-1, 10})
 	assert.Equal(t, "values in y must not be less than 0. y[0]==-1", err.Error())
 
-	_, err = newFunctionShape([]int64{0, 100}, []int64{0, 11})
+	_, err = NewFunctionShape([]int64{0, 100}, []int64{0, 11})
 	assert.Equal(t, "values in y must not be greater than 10. y[1]==11", err.Error())
 }
 
@@ -119,7 +119,7 @@ func TestBrokenLinearFunction(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		functionShape, err := newFunctionShape(test.x, test.y)
+		functionShape, err := NewFunctionShape(test.x, test.y)
 		assert.Nil(t, err)
 		function := buildBrokenLinearFunction(functionShape)
 		for _, assertion := range test.assertions {
