@@ -27,27 +27,50 @@ import (
 // FunctionShape represents shape of scoring function.
 // For safety use newFunctionShape which performs precondition checks for struct creation.
 type FunctionShape struct {
-	x []float64
-	y []float64
+	x []int64
+	y []int64
 }
 
 var (
 	// give priority to least utilized nodes by default
-	defaultFunctionShape, _ = newFunctionShape([]float64{0.0, 1.0}, []float64{1.0, 0.0})
+	defaultFunctionShape, _ = newFunctionShape([]int64{0, 100}, []int64{10, 0})
 )
 
-func newFunctionShape(x []float64, y []float64) (FunctionShape, error) {
+const (
+	minX = 0
+	maxX = 100
+	minY = 0
+	maxY = schedulerapi.MaxPriority
+)
+
+func newFunctionShape(x []int64, y []int64) (FunctionShape, error) {
 	if len(x) != len(y) {
-		return FunctionShape{}, fmt.Errorf("Length of x(%d) does not match length of y(%d)", len(x), len(y))
+		return FunctionShape{}, fmt.Errorf("length of x(%d) does not match length of y(%d)", len(x), len(y))
 	}
 
 	n := len(x)
 
 	for i := 1; i < n; i++ {
 		if x[i-1] >= x[i] {
-			return FunctionShape{}, fmt.Errorf("Values in x must be sorted. x[%d]==%f >= x[%d]==%f", i-1, x[i-1], i, x[i])
+			return FunctionShape{}, fmt.Errorf("values in x must be sorted. x[%d]==%d >= x[%d]==%d", i-1, x[i-1], i, x[i])
 		}
 	}
+
+	for i := 0; i < n; i++ {
+		if x[i] < minX {
+			return FunctionShape{}, fmt.Errorf("values in x must not be less than %d. x[%d]==%d", minX, i, x[i])
+		}
+		if x[i] > maxX {
+			return FunctionShape{}, fmt.Errorf("values in x must not be greater than %d. x[%d]==%d", maxX, i, x[i])
+		}
+		if y[i] < minY {
+			return FunctionShape{}, fmt.Errorf("values in y must not be less than %d. y[%d]==%d", minY, i, y[i])
+		}
+		if y[i] > maxY {
+			return FunctionShape{}, fmt.Errorf("values in y must not be greater than %d. y[%d]==%d", maxY, i, y[i])
+		}
+	}
+
 	return FunctionShape{
 		x: x,
 		y: y,
@@ -71,18 +94,18 @@ func RequestedToCapacityRatioResourceAllocationPriority(scoringFunctionShape Fun
 func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionShape) func(*schedulercache.Resource, *schedulercache.Resource, bool, int, int) int64 {
 	rawScoringFunction := buildBrokenLinearFunction(scoringFunctionShape)
 
-	resourceScoringFunction := func(requested, capacity int64) float64 {
+	resourceScoringFunction := func(requested, capacity int64) int64 {
 		if capacity == 0 || requested > capacity {
-			return rawScoringFunction(1.0)
+			return rawScoringFunction(maxX)
 		}
 
-		return rawScoringFunction(1.0 - float64(capacity-requested)/float64(capacity))
+		return rawScoringFunction(maxX - (capacity-requested)*maxX/capacity)
 	}
 
 	return func(requested, allocable *schedulercache.Resource, includeVolumes bool, requestedVolumes int, allocatableVolumes int) int64 {
 		cpuScore := resourceScoringFunction(requested.MilliCPU, allocable.MilliCPU)
 		memoryScore := resourceScoringFunction(requested.Memory, allocable.Memory)
-		return int64((cpuScore + memoryScore) / 2 * schedulerapi.MaxPriority)
+		return (cpuScore + memoryScore) / 2
 	}
 }
 
@@ -96,17 +119,17 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 //   y[i] for p == x[i]
 //   y[n-1] for p > x[n-1]
 // and linear between points (p < x[i])
-func buildBrokenLinearFunction(shape FunctionShape) func(float64) float64 {
+func buildBrokenLinearFunction(shape FunctionShape) func(int64) int64{
 	if len(shape.x) != len(shape.y) {
 		glog.Fatalf("invalid argument; len(shape.x)==%d, len(shape.y)==%d", shape.x, shape.y)
 	}
 	n := len(shape.x)
-	x := make([]float64, n)
+	x := make([]int64, n)
 	copy(x, shape.x)
-	y := make([]float64, n)
+	y := make([]int64, n)
 	copy(y, shape.y)
 
-	return func(p float64) float64 {
+	return func(p int64) int64 {
 		for i := 0; i < n; i++ {
 			if p <= x[i] {
 				if i == 0 {

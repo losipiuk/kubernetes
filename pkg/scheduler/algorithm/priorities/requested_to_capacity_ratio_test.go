@@ -30,73 +30,90 @@ import (
 
 func TestCreatingFunctionShapePanicsIfLengthOfXDoesNotMatchLengthOfY(t *testing.T) {
 	var err error
-	_, err = newFunctionShape([]float64{1, 2}, []float64{1, 2, 3})
-	assert.Equal(t, "Length of x(2) does not match length of y(3)", err.Error())
+	_, err = newFunctionShape([]int64{1, 2}, []int64{1, 2, 3})
+	assert.Equal(t, "length of x(2) does not match length of y(3)", err.Error())
 }
 
 func TestCreatingFunctionShapeErrorsIfXIsNotSorted(t *testing.T) {
 	var err error
-	_, err = newFunctionShape([]float64{1, 1.5, 2, 1.9, 2.5}, []float64{1, 2, 3, 4, 5})
-	assert.Equal(t, "Values in x must be sorted. x[2]==2.000000 >= x[3]==1.900000", err.Error())
+	_, err = newFunctionShape([]int64{10, 15, 20, 19, 25}, []int64{1, 2, 3, 4, 5})
+	assert.Equal(t, "values in x must be sorted. x[2]==20 >= x[3]==19", err.Error())
 
-	_, err = newFunctionShape([]float64{1, 2, 2, 2.2, 2.5}, []float64{1, 2, 3, 4, 5})
-	assert.Equal(t, "Values in x must be sorted. x[1]==2.000000 >= x[2]==2.000000", err.Error())
+	_, err = newFunctionShape([]int64{10, 20, 20, 22, 25}, []int64{1, 2, 3, 4, 5})
+	assert.Equal(t, "values in x must be sorted. x[1]==20 >= x[2]==20", err.Error())
+}
+
+func TestCreatingFunctionPointNotInAllowedRange(t *testing.T) {
+	var err error
+	_, err = newFunctionShape([]int64{-1, 100}, []int64{0, 10})
+	assert.Equal(t, "values in x must not be less than 0. x[0]==-1", err.Error())
+
+	_, err = newFunctionShape([]int64{0, 101}, []int64{0, 10})
+	assert.Equal(t, "values in x must not be greater than 100. x[1]==101", err.Error())
+
+	_, err = newFunctionShape([]int64{0, 100}, []int64{-1, 10})
+	assert.Equal(t, "values in y must not be less than 0. y[0]==-1", err.Error())
+
+	_, err = newFunctionShape([]int64{0, 100}, []int64{0, 11})
+	assert.Equal(t, "values in y must not be greater than 10. y[1]==11", err.Error())
 }
 
 func TestBrokenLinearFunction(t *testing.T) {
 	type Assertion struct {
-		p        float64
-		expected float64
+		p        int64
+		expected int64
 	}
 	type Test struct {
-		x          []float64
-		y          []float64
+		x          []int64
+		y          []int64
 		assertions []Assertion
 	}
 
 	tests := []Test{
 		{
-			x: []float64{100.0, 200.0},
-			y: []float64{2000.0, 3000.0},
+			x: []int64{10, 90},
+			y: []int64{1, 9},
 			assertions: []Assertion{
-				{p: -500.0, expected: 2000.0},
-				{p: 0.0, expected: 2000.0},
-				{p: 99.0, expected: 2000.0},
-				{p: 100.0, expected: 2000.0},
-				{p: 101.0, expected: 2010.0},
-				{p: 199.0, expected: 2990.0},
-				{p: 199.0, expected: 2990.0},
-				{p: 200.0, expected: 3000.0},
-				{p: 201.0, expected: 3000.0},
-				{p: 500.0, expected: 3000.0},
+				{p: -10, expected: 1},
+				{p: 0, expected: 1},
+				{p: 9, expected: 1},
+				{p: 10, expected: 1},
+				{p: 15, expected: 1},
+				{p: 19, expected: 1},
+				{p: 20, expected: 2},
+				{p: 89, expected: 8},
+				{p: 90, expected: 9},
+				{p: 99, expected: 9},
+				{p: 100, expected: 9},
+				{p: 110, expected: 9},
 			},
 		},
 		{
-			x: []float64{0.0, 40.0, 100.0},
-			y: []float64{2.0, 10.0, 0.0},
+			x: []int64{0, 40, 100},
+			y: []int64{2, 10, 0},
 			assertions: []Assertion{
-				{p: -10.0, expected: 2.0},
-				{p: 0.0, expected: 2.0},
-				{p: 20.0, expected: 6.0},
-				{p: 30.0, expected: 8.0},
-				{p: 40.0, expected: 10.0},
-				{p: 70.0, expected: 5.0},
-				{p: 100.0, expected: 0.0},
-				{p: 110.0, expected: 0.0},
+				{p: -10, expected: 2},
+				{p: 0, expected: 2},
+				{p: 20, expected: 6},
+				{p: 30, expected: 8},
+				{p: 40, expected: 10},
+				{p: 70, expected: 5},
+				{p: 100, expected: 0},
+				{p: 110, expected: 0},
 			},
 		},
 		{
-			x: []float64{0.0, 40.0, 100.0},
-			y: []float64{2.0, 2.0, 2.0},
+			x: []int64{0, 40, 100},
+			y: []int64{2, 2, 2},
 			assertions: []Assertion{
-				{p: -10.0, expected: 2.0},
-				{p: 0.0, expected: 2.0},
-				{p: 20.0, expected: 2.0},
-				{p: 30.0, expected: 2.0},
-				{p: 40.0, expected: 2.0},
-				{p: 70.0, expected: 2.0},
-				{p: 100.0, expected: 2.0},
-				{p: 110.0, expected: 2.0},
+				{p: -10, expected: 2},
+				{p: 0, expected: 2},
+				{p: 20, expected: 2},
+				{p: 30, expected: 2},
+				{p: 40, expected: 2},
+				{p: 70, expected: 2},
+				{p: 100, expected: 2},
+				{p: 110, expected: 2},
 			},
 		},
 	}
@@ -158,10 +175,10 @@ func TestRequestedToCapacityRatio(t *testing.T) {
 					used:     resources{0, 0},
 				},
 			},
-			expectedPriorities: []schedulerapi.HostPriority{{Host: "node1", Score: 3}, {Host: "node2", Score: 5}},
+			expectedPriorities: []schedulerapi.HostPriority{{Host: "node1", Score: 4}, {Host: "node2", Score: 5}},
 		},
 		{
-			test:      "no resources requested, pods scheduled with resources (default - leasth requested nodes have priority)",
+			test:      "no resources requested, pods scheduled with resources (default - least requested nodes have priority)",
 			requested: resources{0, 0},
 			nodes: map[string]nodeResources{
 				"node1": {
@@ -173,7 +190,7 @@ func TestRequestedToCapacityRatio(t *testing.T) {
 					used:     resources{3000, 5000},
 				},
 			},
-			expectedPriorities: []schedulerapi.HostPriority{{Host: "node1", Score: 3}, {Host: "node2", Score: 5}},
+			expectedPriorities: []schedulerapi.HostPriority{{Host: "node1", Score: 4}, {Host: "node2", Score: 5}},
 		},
 	}
 
