@@ -640,7 +640,17 @@ func TestCompatibility_v1_Scheduler(t *testing.T) {
 			{"name": "TaintTolerationPriority",   "weight": 2},
 			{"name": "InterPodAffinityPriority",   "weight": 2},
 			{"name": "MostRequestedPriority",   "weight": 2},
-			{"name": "RequestedToCapacityRatioPriority",   "weight": 2, "argument": {"requestedToCapacityRatioArguments": {"shape":"0.0=0.0,0.5=0.7"}}}
+			{
+              "name": "RequestedToCapacityRatioPriority",
+              "weight": 2, 
+              "argument": {
+              "requestedToCapacityRatioArguments": {
+                "shape": [
+                  {"utilization": 0,  "score": 0},
+                  {"utilization": 50, "score": 7}
+                ]
+              }
+            }
 		  ]
 		}`,
 			ExpectedPolicy: schedulerapi.Policy{
@@ -680,7 +690,11 @@ func TestCompatibility_v1_Scheduler(t *testing.T) {
 						Name:   "RequestedToCapacityRatioPriority",
 						Weight: 2,
 						Argument: &schedulerapi.PriorityArgument{
-							RequestedToCapacityRatioArguments: &schedulerapi.RequestedToCapacityRatioArguments{Shape: "0.0=0.0,0.5=0.7"},
+							RequestedToCapacityRatioArguments: &schedulerapi.RequestedToCapacityRatioArguments{
+								UtilizationShape: []schedulerapi.UtilizationShapePoint{
+									{0, 0},
+									{50, 7},
+								}},
 						},
 					},
 				},

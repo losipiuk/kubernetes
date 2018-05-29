@@ -19,7 +19,9 @@ package factory
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/scheduler/algorithm"
+	"k8s.io/kubernetes/pkg/scheduler/algorithm/priorities"
 	"k8s.io/kubernetes/pkg/scheduler/api"
 )
 
@@ -79,4 +81,16 @@ func TestValidatePriorityConfigOverFlow(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestBuildScoringFunctionShapeFromRequestedToCapacityRatioArguments(t *testing.T) {
+	arguments := api.RequestedToCapacityRatioArguments{
+		UtilizationShape: []api.UtilizationShapePoint{
+			{10, 1},
+			{30, 5},
+			{70, 2},
+		}}
+	builtShape := buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(&arguments)
+	expectedShape, _ := priorities.NewFunctionShape([]int64{10, 30, 70}, []int64{1, 5, 2})
+	assert.Equal(t, expectedShape, builtShape)
 }

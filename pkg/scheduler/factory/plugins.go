@@ -325,7 +325,7 @@ func RegisterCustomPriorityFunction(policy schedulerapi.PriorityPolicy) string {
 		} else if policy.Argument.RequestedToCapacityRatioArguments != nil {
 			pcf = &PriorityConfigFactory{
 				MapReduceFunction: func(args PluginFactoryArgs) (algorithm.PriorityMapFunction, algorithm.PriorityReduceFunction) {
-					scoringFunctionShape := priorities.ParseRequestedToCapacityRatioScoringFunctionShape(policy.Argument.RequestedToCapacityRatioArguments.Shape)
+					scoringFunctionShape := buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(policy.Argument.RequestedToCapacityRatioArguments)
 					p := priorities.RequestedToCapacityRatioResourceAllocationPriority(scoringFunctionShape)
 					return p.PriorityMap, nil
 				},
@@ -347,6 +347,21 @@ func RegisterCustomPriorityFunction(policy schedulerapi.PriorityPolicy) string {
 	}
 
 	return RegisterPriorityConfigFactory(policy.Name, *pcf)
+}
+
+func buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(arguments *schedulerapi.RequestedToCapacityRatioArguments) priorities.FunctionShape {
+	n := len(arguments.UtilizationShape)
+	x := make([]int64, 0, n)
+	y := make([]int64, 0, n)
+	for _, point := range arguments.UtilizationShape {
+		x = append(x, int64(point.Utilization))
+		y = append(y, int64(point.Score))
+	}
+	shape, err := priorities.NewFunctionShape(x, y)
+	if err != nil {
+		glog.Fatalf("invalid RequestedToCapacityRatioPriority arguments: %s", err.Error())
+	}
+	return shape
 }
 
 // IsPriorityFunctionRegistered is useful for testing providers.

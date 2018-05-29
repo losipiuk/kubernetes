@@ -147,7 +147,16 @@ type LabelPreference struct {
 
 // RequestedToCapacityRatioArguments holds arguments specific to RequestedToCapacityRatio priority function
 type RequestedToCapacityRatioArguments struct {
-	Shape string
+	// Array of point defining priority function shape
+	UtilizationShape []UtilizationShapePoint
+}
+
+// UtilizationShapePoint represents single point of priority function shape
+type UtilizationShapePoint struct {
+	// Utilization (x axis). Valid values are 0 to 100. Fully utilized node maps to 100.
+	Utilization int
+	// Score assigned to given utilization (y axis). Valid values are 0 to 10.
+	Score int
 }
 
 // ExtenderManagedResource describes the arguments of extended resources
