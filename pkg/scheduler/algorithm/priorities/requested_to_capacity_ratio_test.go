@@ -37,19 +37,19 @@ func TestCreatingFunctionShapeErrorsIfEmptyPoints(t *testing.T) {
 func TestCreatingFunctionShapeErrorsIfXIsNotSorted(t *testing.T) {
 	var err error
 	_, err = NewFunctionShape([]FunctionShapePoint{{10, 1}, {15, 2}, {20, 3}, {19, 4}, {25, 5}})
-	assert.Equal(t, "values in x must be sorted. x[2]==20 >= x[3]==19", err.Error())
+	assert.Equal(t, "values in x must be sorted. X[2]==20 >= X[3]==19", err.Error())
 
 	_, err = NewFunctionShape([]FunctionShapePoint{{10, 1}, {20, 2}, {20, 3}, {22, 4}, {25, 5}})
-	assert.Equal(t, "values in x must be sorted. x[1]==20 >= x[2]==20", err.Error())
+	assert.Equal(t, "values in x must be sorted. X[1]==20 >= X[2]==20", err.Error())
 }
 
 func TestCreatingFunctionPointNotInAllowedRange(t *testing.T) {
 	var err error
 	_, err = NewFunctionShape([]FunctionShapePoint{{-1, 0}, {100, 10}})
-	assert.Equal(t, "values in x must not be less than 0. x[0]==-1", err.Error())
+	assert.Equal(t, "values in x must not be less than 0. X[0]==-1", err.Error())
 
 	_, err = NewFunctionShape([]FunctionShapePoint{{0, 0}, {101, 10}})
-	assert.Equal(t, "values in x must not be greater than 100. x[1]==101", err.Error())
+	assert.Equal(t, "values in x must not be greater than 100. X[1]==101", err.Error())
 
 	_, err = NewFunctionShape([]FunctionShapePoint{{0, -1}, {100, 10}})
 	assert.Equal(t, "values in y must not be less than 0. y[0]==-1", err.Error())

@@ -29,8 +29,10 @@ type FunctionShape []FunctionShapePoint
 
 // FunctionShapePoint represents single point in scoring function shape.
 type FunctionShapePoint struct {
-	x int64
-	y int64
+	// X is function argument.
+	X int64
+	// Y is function value.
+	Y int64
 }
 
 var (
@@ -56,23 +58,23 @@ func NewFunctionShape(points []FunctionShapePoint) (FunctionShape, error) {
 	}
 
 	for i := 1; i < n; i++ {
-		if points[i-1].x >= points[i].x {
-			return nil, fmt.Errorf("values in x must be sorted. x[%d]==%d >= x[%d]==%d", i-1, points[i-1].x, i, points[i].x)
+		if points[i-1].X >= points[i].X {
+			return nil, fmt.Errorf("values in x must be sorted. X[%d]==%d >= X[%d]==%d", i-1, points[i-1].X, i, points[i].X)
 		}
 	}
 
 	for i, point := range points {
-		if point.x < minX {
-			return nil, fmt.Errorf("values in x must not be less than %d. x[%d]==%d", minX, i, point.x)
+		if point.X < minX {
+			return nil, fmt.Errorf("values in x must not be less than %d. X[%d]==%d", minX, i, point.X)
 		}
-		if point.x > maxX {
-			return nil, fmt.Errorf("values in x must not be greater than %d. x[%d]==%d", maxX, i, point.x)
+		if point.X > maxX {
+			return nil, fmt.Errorf("values in x must not be greater than %d. X[%d]==%d", maxX, i, point.X)
 		}
-		if point.y < minY {
-			return nil, fmt.Errorf("values in y must not be less than %d. y[%d]==%d", minY, i, point.y)
+		if point.Y < minY {
+			return nil, fmt.Errorf("values in y must not be less than %d. y[%d]==%d", minY, i, point.Y)
 		}
-		if point.y > maxY {
-			return nil, fmt.Errorf("values in y must not be greater than %d. y[%d]==%d", maxY, i, point.y)
+		if point.Y > maxY {
+			return nil, fmt.Errorf("values in y must not be greater than %d. y[%d]==%d", maxY, i, point.Y)
 		}
 	}
 
@@ -115,7 +117,7 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 }
 
 // Creates a function which is built using linear segments
-// shape.x slice represents points on x axis where different segments meet
+// shape.x slice represents points on X axis where different segments meet
 // shape.y represents function values at meeting points
 //
 // function f(p) is defined as:
@@ -127,13 +129,13 @@ func buildBrokenLinearFunction(shape FunctionShape) func(int64) int64 {
 	n := len(shape)
 	return func(p int64) int64 {
 		for i := 0; i < n; i++ {
-			if p <= shape[i].x {
+			if p <= shape[i].X {
 				if i == 0 {
-					return shape[0].y
+					return shape[0].Y
 				}
-				return shape[i-1].y + (shape[i].y-shape[i-1].y)*(p-shape[i-1].x)/(shape[i].x-shape[i-1].x)
+				return shape[i-1].Y + (shape[i].Y-shape[i-1].Y)*(p-shape[i-1].X)/(shape[i].X-shape[i-1].X)
 			}
 		}
-		return shape[n-1].y
+		return shape[n-1].Y
 	}
 }
