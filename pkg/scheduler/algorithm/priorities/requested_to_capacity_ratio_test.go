@@ -28,33 +28,33 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 )
 
-func TestCreatingFunctionShapePanicsIfLengthOfXDoesNotMatchLengthOfY(t *testing.T) {
+func TestCreatingFunctionShapeErrorsIfEmptyPoints(t *testing.T) {
 	var err error
-	_, err = NewFunctionShape([]int64{1, 2}, []int64{1, 2, 3})
-	assert.Equal(t, "length of x(2) does not match length of y(3)", err.Error())
+	_, err = NewFunctionShape([]FunctionShapePoint{})
+	assert.Equal(t, "at least one point must be specified", err.Error())
 }
 
 func TestCreatingFunctionShapeErrorsIfXIsNotSorted(t *testing.T) {
 	var err error
-	_, err = NewFunctionShape([]int64{10, 15, 20, 19, 25}, []int64{1, 2, 3, 4, 5})
+	_, err = NewFunctionShape([]FunctionShapePoint{{10, 1}, {15, 2}, {20, 3}, {19, 4}, {25, 5}})
 	assert.Equal(t, "values in x must be sorted. x[2]==20 >= x[3]==19", err.Error())
 
-	_, err = NewFunctionShape([]int64{10, 20, 20, 22, 25}, []int64{1, 2, 3, 4, 5})
+	_, err = NewFunctionShape([]FunctionShapePoint{{10, 1}, {20, 2}, {20, 3}, {22, 4}, {25, 5}})
 	assert.Equal(t, "values in x must be sorted. x[1]==20 >= x[2]==20", err.Error())
 }
 
 func TestCreatingFunctionPointNotInAllowedRange(t *testing.T) {
 	var err error
-	_, err = NewFunctionShape([]int64{-1, 100}, []int64{0, 10})
+	_, err = NewFunctionShape([]FunctionShapePoint{{-1, 0}, {100, 10}})
 	assert.Equal(t, "values in x must not be less than 0. x[0]==-1", err.Error())
 
-	_, err = NewFunctionShape([]int64{0, 101}, []int64{0, 10})
+	_, err = NewFunctionShape([]FunctionShapePoint{{0, 0}, {101, 10}})
 	assert.Equal(t, "values in x must not be greater than 100. x[1]==101", err.Error())
 
-	_, err = NewFunctionShape([]int64{0, 100}, []int64{-1, 10})
+	_, err = NewFunctionShape([]FunctionShapePoint{{0, -1}, {100, 10}})
 	assert.Equal(t, "values in y must not be less than 0. y[0]==-1", err.Error())
 
-	_, err = NewFunctionShape([]int64{0, 100}, []int64{0, 11})
+	_, err = NewFunctionShape([]FunctionShapePoint{{0, 0}, {100, 11}})
 	assert.Equal(t, "values in y must not be greater than 10. y[1]==11", err.Error())
 }
 
@@ -64,15 +64,13 @@ func TestBrokenLinearFunction(t *testing.T) {
 		expected int64
 	}
 	type Test struct {
-		x          []int64
-		y          []int64
+		points     []FunctionShapePoint
 		assertions []Assertion
 	}
 
 	tests := []Test{
 		{
-			x: []int64{10, 90},
-			y: []int64{1, 9},
+			points: []FunctionShapePoint{{10, 1}, {90, 9}},
 			assertions: []Assertion{
 				{p: -10, expected: 1},
 				{p: 0, expected: 1},
@@ -89,8 +87,7 @@ func TestBrokenLinearFunction(t *testing.T) {
 			},
 		},
 		{
-			x: []int64{0, 40, 100},
-			y: []int64{2, 10, 0},
+			points: []FunctionShapePoint{{0, 2}, {40, 10}, {100, 0}},
 			assertions: []Assertion{
 				{p: -10, expected: 2},
 				{p: 0, expected: 2},
@@ -103,8 +100,7 @@ func TestBrokenLinearFunction(t *testing.T) {
 			},
 		},
 		{
-			x: []int64{0, 40, 100},
-			y: []int64{2, 2, 2},
+			points: []FunctionShapePoint{{0, 2}, {40, 2}, {100, 2}},
 			assertions: []Assertion{
 				{p: -10, expected: 2},
 				{p: 0, expected: 2},
@@ -119,11 +115,11 @@ func TestBrokenLinearFunction(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		functionShape, err := NewFunctionShape(test.x, test.y)
+		functionShape, err := NewFunctionShape(test.points)
 		assert.Nil(t, err)
 		function := buildBrokenLinearFunction(functionShape)
 		for _, assertion := range test.assertions {
-			assert.InDelta(t, assertion.expected, function(assertion.p), 0.1, "x=%v, y=%v, p=%f", test.x, test.y, assertion.p)
+			assert.InDelta(t, assertion.expected, function(assertion.p), 0.1, "points=%v, p=%f", test.points, assertion.p)
 		}
 	}
 }

@@ -19,21 +19,23 @@ package priorities
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	"k8s.io/kubernetes/pkg/scheduler/schedulercache"
 )
 
 // FunctionShape represents shape of scoring function.
 // For safety use NewFunctionShape which performs precondition checks for struct creation.
-type FunctionShape struct {
-	x []int64
-	y []int64
+type FunctionShape []FunctionShapePoint
+
+// FunctionShapePoint represents single point in scoring function shape.
+type FunctionShapePoint struct {
+	x int64
+	y int64
 }
 
 var (
 	// give priority to least utilized nodes by default
-	defaultFunctionShape, _ = NewFunctionShape([]int64{0, 100}, []int64{10, 0})
+	defaultFunctionShape, _ = NewFunctionShape([]FunctionShapePoint{{0, 10}, {100, 0}})
 )
 
 const (
@@ -45,38 +47,39 @@ const (
 
 // NewFunctionShape creates instance of FunctionShape in a safe way performing all
 // necessary sanity checks.
-func NewFunctionShape(x []int64, y []int64) (FunctionShape, error) {
-	if len(x) != len(y) {
-		return FunctionShape{}, fmt.Errorf("length of x(%d) does not match length of y(%d)", len(x), len(y))
-	}
+func NewFunctionShape(points []FunctionShapePoint) (FunctionShape, error) {
 
-	n := len(x)
+	n := len(points)
+
+	if n == 0 {
+		return nil, fmt.Errorf("at least one point must be specified")
+	}
 
 	for i := 1; i < n; i++ {
-		if x[i-1] >= x[i] {
-			return FunctionShape{}, fmt.Errorf("values in x must be sorted. x[%d]==%d >= x[%d]==%d", i-1, x[i-1], i, x[i])
+		if points[i-1].x >= points[i].x {
+			return nil, fmt.Errorf("values in x must be sorted. x[%d]==%d >= x[%d]==%d", i-1, points[i-1].x, i, points[i].x)
 		}
 	}
 
-	for i := 0; i < n; i++ {
-		if x[i] < minX {
-			return FunctionShape{}, fmt.Errorf("values in x must not be less than %d. x[%d]==%d", minX, i, x[i])
+	for i, point := range points {
+		if point.x < minX {
+			return nil, fmt.Errorf("values in x must not be less than %d. x[%d]==%d", minX, i, point.x)
 		}
-		if x[i] > maxX {
-			return FunctionShape{}, fmt.Errorf("values in x must not be greater than %d. x[%d]==%d", maxX, i, x[i])
+		if point.x > maxX {
+			return nil, fmt.Errorf("values in x must not be greater than %d. x[%d]==%d", maxX, i, point.x)
 		}
-		if y[i] < minY {
-			return FunctionShape{}, fmt.Errorf("values in y must not be less than %d. y[%d]==%d", minY, i, y[i])
+		if point.y < minY {
+			return nil, fmt.Errorf("values in y must not be less than %d. y[%d]==%d", minY, i, point.y)
 		}
-		if y[i] > maxY {
-			return FunctionShape{}, fmt.Errorf("values in y must not be greater than %d. y[%d]==%d", maxY, i, y[i])
+		if point.y > maxY {
+			return nil, fmt.Errorf("values in y must not be greater than %d. y[%d]==%d", maxY, i, point.y)
 		}
 	}
 
-	return FunctionShape{
-		x: x,
-		y: y,
-	}, nil
+	// We make defensive copy so we make no assumption if array passed as argument is not changed afterwards
+	pointsCopy := make(FunctionShape, n)
+	copy(pointsCopy, points)
+	return pointsCopy, nil
 }
 
 // RequestedToCapacityRatioResourceAllocationPriorityDefault creates a requestedToCapacity based
@@ -114,7 +117,6 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 // Creates a function which is built using linear segments
 // shape.x slice represents points on x axis where different segments meet
 // shape.y represents function values at meeting points
-// both shape.x and shape.y have same length (n)
 //
 // function f(p) is defined as:
 //   y[0] for p < x[0]
@@ -122,24 +124,16 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 //   y[n-1] for p > x[n-1]
 // and linear between points (p < x[i])
 func buildBrokenLinearFunction(shape FunctionShape) func(int64) int64 {
-	if len(shape.x) != len(shape.y) {
-		glog.Fatalf("invalid argument; len(shape.x)==%d, len(shape.y)==%d", shape.x, shape.y)
-	}
-	n := len(shape.x)
-	x := make([]int64, n)
-	copy(x, shape.x)
-	y := make([]int64, n)
-	copy(y, shape.y)
-
+	n := len(shape)
 	return func(p int64) int64 {
 		for i := 0; i < n; i++ {
-			if p <= x[i] {
+			if p <= shape[i].x {
 				if i == 0 {
-					return y[0]
+					return shape[0].y
 				}
-				return y[i-1] + (y[i]-y[i-1])*(p-x[i-1])/(x[i]-x[i-1])
+				return shape[i-1].y + (shape[i].y-shape[i-1].y)*(p-shape[i-1].x)/(shape[i].x-shape[i-1].x)
 			}
 		}
-		return y[n-1]
+		return shape[n-1].y
 	}
 }
