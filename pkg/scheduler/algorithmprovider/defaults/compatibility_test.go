@@ -692,8 +692,8 @@ func TestCompatibility_v1_Scheduler(t *testing.T) {
 						Argument: &schedulerapi.PriorityArgument{
 							RequestedToCapacityRatioArguments: &schedulerapi.RequestedToCapacityRatioArguments{
 								UtilizationShape: []schedulerapi.UtilizationShapePoint{
-									{0, 0},
-									{50, 7},
+									{Utilization: 0, Score: 0},
+									{Utilization: 50, Score: 7},
 								}},
 						},
 					},

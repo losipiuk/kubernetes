@@ -351,13 +351,13 @@ func RegisterCustomPriorityFunction(policy schedulerapi.PriorityPolicy) string {
 
 func buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(arguments *schedulerapi.RequestedToCapacityRatioArguments) priorities.FunctionShape {
 	n := len(arguments.UtilizationShape)
-	x := make([]int64, 0, n)
+	points := make([]priorities.FunctionShapePoint, 0, n)
 	y := make([]int64, 0, n)
 	for _, point := range arguments.UtilizationShape {
-		x = append(x, int64(point.Utilization))
+		points = append(points, priorities.FunctionShapePoint{X: int64(point.Utilization), Y: int64(point.Score)})
 		y = append(y, int64(point.Score))
 	}
-	shape, err := priorities.NewFunctionShape(x, y)
+	shape, err := priorities.NewFunctionShape(points)
 	if err != nil {
 		glog.Fatalf("invalid RequestedToCapacityRatioPriority arguments: %s", err.Error())
 	}
