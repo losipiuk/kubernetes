@@ -353,7 +353,7 @@ func buildScoringFunctionShapeFromRequestedToCapacityRatioArguments(arguments *s
 	n := len(arguments.UtilizationShape)
 	points := make([]priorities.FunctionShapePoint, 0, n)
 	for _, point := range arguments.UtilizationShape {
-		points = append(points, priorities.FunctionShapePoint{X: int64(point.Utilization), Y: int64(point.Score)})
+		points = append(points, priorities.FunctionShapePoint{Utilization: int64(point.Utilization), Score: int64(point.Score)})
 	}
 	shape, err := priorities.NewFunctionShape(points)
 	if err != nil {
