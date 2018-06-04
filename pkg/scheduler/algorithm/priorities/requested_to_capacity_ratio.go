@@ -29,10 +29,10 @@ type FunctionShape []FunctionShapePoint
 
 // FunctionShapePoint represents single point in scoring function shape.
 type FunctionShapePoint struct {
-	// X is function argument.
-	X int64
-	// Y is function value.
-	Y int64
+	// Utilization is function argument.
+	Utilization int64
+	// Score is function value.
+	Score int64
 }
 
 var (
@@ -41,10 +41,10 @@ var (
 )
 
 const (
-	minX = 0
-	maxX = 100
-	minY = 0
-	maxY = schedulerapi.MaxPriority
+	minUtilization = 0
+	maxUtilization = 100
+	minScore       = 0
+	maxScore       = schedulerapi.MaxPriority
 )
 
 // NewFunctionShape creates instance of FunctionShape in a safe way performing all
@@ -58,23 +58,23 @@ func NewFunctionShape(points []FunctionShapePoint) (FunctionShape, error) {
 	}
 
 	for i := 1; i < n; i++ {
-		if points[i-1].X >= points[i].X {
-			return nil, fmt.Errorf("values in x must be sorted. X[%d]==%d >= X[%d]==%d", i-1, points[i-1].X, i, points[i].X)
+		if points[i-1].Utilization >= points[i].Utilization {
+			return nil, fmt.Errorf("utilization values must be sorted. Utilization[%d]==%d >= Utilization[%d]==%d", i-1, points[i-1].Utilization, i, points[i].Utilization)
 		}
 	}
 
 	for i, point := range points {
-		if point.X < minX {
-			return nil, fmt.Errorf("values in x must not be less than %d. X[%d]==%d", minX, i, point.X)
+		if point.Utilization < minUtilization {
+			return nil, fmt.Errorf("utilization values must not be less than %d. Utilization[%d]==%d", minUtilization, i, point.Utilization)
 		}
-		if point.X > maxX {
-			return nil, fmt.Errorf("values in x must not be greater than %d. X[%d]==%d", maxX, i, point.X)
+		if point.Utilization > maxUtilization {
+			return nil, fmt.Errorf("utilization values must not be greater than %d. Utilization[%d]==%d", maxUtilization, i, point.Utilization)
 		}
-		if point.Y < minY {
-			return nil, fmt.Errorf("values in y must not be less than %d. y[%d]==%d", minY, i, point.Y)
+		if point.Score < minScore {
+			return nil, fmt.Errorf("score values must not be less than %d. Score[%d]==%d", minScore, i, point.Score)
 		}
-		if point.Y > maxY {
-			return nil, fmt.Errorf("values in y must not be greater than %d. y[%d]==%d", maxY, i, point.Y)
+		if point.Score > maxScore {
+			return nil, fmt.Errorf("score valuses not be greater than %d. Score[%d]==%d", maxScore, i, point.Score)
 		}
 	}
 
@@ -103,10 +103,10 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 
 	resourceScoringFunction := func(requested, capacity int64) int64 {
 		if capacity == 0 || requested > capacity {
-			return rawScoringFunction(maxX)
+			return rawScoringFunction(maxUtilization)
 		}
 
-		return rawScoringFunction(maxX - (capacity-requested)*maxX/capacity)
+		return rawScoringFunction(maxUtilization - (capacity-requested)*maxUtilization/capacity)
 	}
 
 	return func(requested, allocable *schedulercache.Resource, includeVolumes bool, requestedVolumes int, allocatableVolumes int) int64 {
@@ -116,26 +116,26 @@ func buildRequestedToCapacityRatioScorerFunction(scoringFunctionShape FunctionSh
 	}
 }
 
-// Creates a function which is built using linear segments
-// shape.x slice represents points on X axis where different segments meet
-// shape.y represents function values at meeting points
+// Creates a function which is built using linear segments. Segments are defined via shape array.
+// Shape[i].Utilization slice represents points on "utilization" axis where different segments meet.
+// Shape[i].Score represents function values at meeting points.
 //
 // function f(p) is defined as:
-//   y[0] for p < x[0]
-//   y[i] for p == x[i]
-//   y[n-1] for p > x[n-1]
-// and linear between points (p < x[i])
+//   shape[0].Score for p < f[0].Utilization
+//   shape[i].Score for p == shape[i].Utilization
+//   shape[n-1].Score for p > shape[n-1].Utilization
+// and linear between points (p < shape[i].Utilization)
 func buildBrokenLinearFunction(shape FunctionShape) func(int64) int64 {
 	n := len(shape)
 	return func(p int64) int64 {
 		for i := 0; i < n; i++ {
-			if p <= shape[i].X {
+			if p <= shape[i].Utilization {
 				if i == 0 {
-					return shape[0].Y
+					return shape[0].Score
 				}
-				return shape[i-1].Y + (shape[i].Y-shape[i-1].Y)*(p-shape[i-1].X)/(shape[i].X-shape[i-1].X)
+				return shape[i-1].Score + (shape[i].Score-shape[i-1].Score)*(p-shape[i-1].Utilization)/(shape[i].Utilization-shape[i-1].Utilization)
 			}
 		}
-		return shape[n-1].Y
+		return shape[n-1].Score
 	}
 }
